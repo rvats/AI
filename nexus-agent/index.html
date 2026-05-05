@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Nexus Agent</title>
+<style>
+  :root {
+    --bg: #0d0f1a;
+    --surface: #13162a;
+    --card: #1a1e35;
+    --card2: #1f2440;
+    --border: #2a2f52;
+    --accent: #6366f1;
+    --accent2: #818cf8;
+    --accent3: #a5b4fc;
+    --green: #34d399;
+    --yellow: #fbbf24;
+    --red: #f87171;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --code-bg: #0f1117;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    height: 100vh;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 260px;
+    min-width: 260px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+  .sidebar-logo {
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .logo-text { font-size: 17px; font-weight: 700; color: var(--text); }
+  .logo-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
+
+  .status-bar {
+    margin: 12px 16px;
+    padding: 8px 12px;
+    background: var(--card);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--text2);
+  }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    flex-shrink: 0;
+  }
+  .status-dot.inactive { background: var(--text3); box-shadow: none; }
+  .status-dot.thinking {
+    background: var(--yellow);
+    box-shadow: 0 0 6px var(--yellow);
+    animation: pulse 1s infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .sidebar-section { padding: 8px 16px 4px; font-size: 11px; font-weight: 600;
+    color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .example-btn {
+    margin: 3px 12px;
+    padding: 8px 10px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    color: var(--text2);
+    font-size: 12.5px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+    line-height: 1.4;
+  }
+  .example-btn:hover {
+    background: var(--card);
+    border-color: var(--border);
+    color: var(--text);
+  }
+  .example-icon { margin-right: 6px; }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 16px;
+    border-top: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .btn-settings {
+    width: 100%;
+    padding: 9px 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text2);
+    font-size: 13px;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 8px;
+    transition: all 0.15s;
+  }
+  .btn-settings:hover { border-color: var(--accent); color: var(--text); }
+  .btn-clear {
+    width: 100%;
+    padding: 9px 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text3);
+    font-size: 13px;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 8px;
+    transition: all 0.15s;
+  }
+  .btn-clear:hover { border-color: var(--red); color: var(--red); }
+
+  /* ── Main ── */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .chat-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .chat-title { font-size: 15px; font-weight: 600; color: var(--text); }
+  .chat-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .model-badge {
+    padding: 4px 10px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 11px;
+    color: var(--accent3);
+    font-weight: 500;
+  }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    scroll-behavior: smooth;
+  }
+  .messages::-webkit-scrollbar { width: 6px; }
+  .messages::-webkit-scrollbar-track { background: transparent; }
+  .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* Welcome */
+  .welcome {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; flex: 1; text-align: center;
+    padding: 40px;
+  }
+  .welcome-icon {
+    font-size: 56px; margin-bottom: 16px;
+    animation: float 3s ease-in-out infinite;
+  }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  .welcome h2 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+  .welcome p { color: var(--text2); font-size: 14px; max-width: 400px; line-height: 1.6; }
+  .welcome-tools {
+    display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 20px;
+  }
+  .tool-chip {
+    padding: 5px 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 12px; color: var(--text2);
+  }
+
+  /* Message bubbles */
+  .msg { display: flex; gap: 12px; align-items: flex-start; }
+  .msg.user { flex-direction: row-reverse; }
+  .msg-avatar {
+    width: 32px; height: 32px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+  }
+  .msg.agent .msg-avatar { background: linear-gradient(135deg, var(--accent), #8b5cf6); }
+  .msg.user .msg-avatar { background: var(--card2); border: 1px solid var(--border); }
+  .msg-body { max-width: 78%; display: flex; flex-direction: column; gap: 8px; }
+  .msg.user .msg-body { align-items: flex-end; }
+  .msg-bubble {
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    font-size: 14px; line-height: 1.6;
+    word-break: break-word;
+  }
+  .msg.agent .msg-bubble {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-top-left-radius: 4px;
+  }
+  .msg.user .msg-bubble {
+    background: var(--accent);
+    color: #fff;
+    border-top-right-radius: 4px;
+  }
+
+  /* Markdown rendering */
+  .msg-bubble h1,.msg-bubble h2,.msg-bubble h3 { margin: 12px 0 6px; font-weight: 600; }
+  .msg-bubble h1 { font-size: 18px; }
+  .msg-bubble h2 { font-size: 16px; }
+  .msg-bubble h3 { font-size: 14px; }
+  .msg-bubble p { margin: 6px 0; }
+  .msg-bubble ul,.msg-bubble ol { margin: 6px 0 6px 20px; }
+  .msg-bubble li { margin: 3px 0; }
+  .msg-bubble code {
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 12.5px;
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 4px;
+    color: var(--accent3);
+  }
+  .msg-bubble pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    overflow-x: auto;
+    margin: 8px 0;
+  }
+  .msg-bubble pre code { background: none; padding: 0; color: var(--text); }
+  .msg-bubble strong { color: var(--text); font-weight: 600; }
+  .msg-bubble a { color: var(--accent3); text-decoration: underline; }
+  .msg-bubble hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+
+  /* Tool cards */
+  .tool-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    font-size: 13px;
+    width: 100%;
+  }
+  .tool-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.1s;
+  }
+  .tool-header:hover { background: var(--card2); }
+  .tool-icon { font-size: 15px; }
+  .tool-name { font-weight: 600; color: var(--text); flex: 1; }
+  .tool-status {
+    font-size: 11px; padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+  .tool-status.running {
+    background: rgba(251,191,36,0.15);
+    color: var(--yellow);
+    border: 1px solid rgba(251,191,36,0.3);
+  }
+  .tool-status.done {
+    background: rgba(52,211,153,0.12);
+    color: var(--green);
+    border: 1px solid rgba(52,211,153,0.25);
+  }
+  .tool-status.error {
+    background: rgba(248,113,113,0.12);
+    color: var(--red);
+    border: 1px solid rgba(248,113,113,0.25);
+  }
+  .tool-chevron { color: var(--text3); font-size: 12px; transition: transform 0.2s; }
+  .tool-chevron.open { transform: rotate(90deg); }
+  .tool-body { display: none; border-top: 1px solid var(--border); }
+  .tool-body.open { display: block; }
+  .tool-section { padding: 10px 14px; }
+  .tool-section + .tool-section { border-top: 1px solid var(--border); }
+  .tool-label {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.07em; color: var(--text3); margin-bottom: 6px;
+  }
+  .tool-code {
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 12px;
+    background: var(--code-bg);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    color: var(--text2);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  .tool-code::-webkit-scrollbar { width: 4px; }
+  .tool-code::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Typing indicator */
+  .typing-dots { display: flex; gap: 4px; padding: 4px 0; }
+  .typing-dots span {
+    width: 6px; height: 6px; background: var(--text3);
+    border-radius: 50%; animation: typing 1.2s infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typing { 0%,80%,100%{opacity:0.3;transform:translateY(0)} 40%{opacity:1;transform:translateY(-4px)} }
+
+  /* Input area */
+  .input-area {
+    padding: 16px 24px 20px;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .input-wrap {
+    display: flex;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .input-wrap:focus-within { border-color: var(--accent); }
+  #userInput {
+    flex: 1;
+    padding: 14px 16px;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-size: 14px;
+    resize: none;
+    min-height: 52px;
+    max-height: 160px;
+    font-family: inherit;
+    line-height: 1.5;
+  }
+  #userInput::placeholder { color: var(--text3); }
+  .send-btn {
+    padding: 0 18px;
+    background: var(--accent);
+    border: none;
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    transition: background 0.15s;
+    display: flex; align-items: center;
+    flex-shrink: 0;
+  }
+  .send-btn:hover { background: var(--accent2); }
+  .send-btn:disabled { background: var(--border); cursor: not-allowed; }
+  .input-hint {
+    font-size: 11.5px; color: var(--text3); margin-top: 8px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .kbd {
+    padding: 2px 6px;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 10px;
+    font-family: monospace;
+  }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    display: none; align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    width: 440px;
+    max-width: 90vw;
+  }
+  .modal h3 { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+  .modal p { font-size: 13px; color: var(--text2); margin-bottom: 20px; line-height: 1.5; }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 12px; font-weight: 600;
+    color: var(--text2); margin-bottom: 6px; }
+  .form-group input {
+    width: 100%; padding: 10px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: 13px;
+    outline: none;
+    font-family: monospace;
+  }
+  .form-group input:focus { border-color: var(--accent); }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+  .btn-primary {
+    padding: 9px 20px;
+    background: var(--accent);
+    border: none;
+    border-radius: var(--radius-sm);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-secondary {
+    padding: 9px 20px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text2);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-secondary:hover { border-color: var(--text2); color: var(--text); }
+  .key-hint {
+    font-size: 11px; color: var(--text3); margin-top: 12px;
+    padding: 8px 10px; background: var(--bg); border-radius: var(--radius-sm);
+    line-height: 1.5;
+  }
+  .tab-btn {
+    flex: 1; padding: 8px 12px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text2);
+    font-size: 13px; cursor: pointer; transition: all 0.15s;
+  }
+  .tab-btn.tab-active {
+    background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600;
+  }
+  .preset-btn {
+    padding: 4px 10px; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 20px;
+    color: var(--text2); font-size: 11.5px; cursor: pointer; transition: all 0.15s;
+  }
+  .preset-btn:hover { border-color: var(--accent); color: var(--accent3); }
+
+  /* Banner */
+  .banner {
+    margin: 0 24px;
+    padding: 10px 14px;
+    background: rgba(251,191,36,0.08);
+    border: 1px solid rgba(251,191,36,0.25);
+    border-radius: var(--radius-sm);
+    font-size: 12.5px;
+    color: var(--yellow);
+    display: none; align-items: center; gap: 8px;
+    cursor: pointer;
+  }
+  .banner.show { display: flex; }
+  .banner:hover { background: rgba(251,191,36,0.14); }
+
+  /* Error */
+  .error-msg {
+    padding: 12px 16px;
+    background: rgba(248,113,113,0.1);
+    border: 1px solid rgba(248,113,113,0.3);
+    border-radius: var(--radius);
+    font-size: 13px;
+    color: var(--red);
+  }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">⚡</div>
+    <div>
+      <div class="logo-text">Nexus Agent</div>
+      <div class="logo-sub">Local AI · Claude Powered</div>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <div class="status-dot inactive" id="statusDot"></div>
+    <span id="statusText">Ready</span>
+  </div>
+
+  <div class="sidebar-section">Example Tasks</div>
+
+  <button class="example-btn" onclick="fillPrompt(this.dataset.p)" data-p="List all files in my project directory and give me a summary of what's here.">
+    <span class="example-icon">📁</span>Explore project files
+  </button>
+  <button class="example-btn" onclick="fillPrompt(this.dataset.p)" data-p="Write a Python script that generates the first 20 Fibonacci numbers, saves it to fibonacci.py, then runs it.">
+    <span class="example-icon">🐍</span>Write & run Python code
+  </button>
+  <button class="example-btn" onclick="fillPrompt(this.dataset.p)" data-p="Search the web for the latest news about Claude AI and summarize the top 3 findings.">
+    <span class="example-icon">🌐</span>Search the web for AI news
+  </button>
+  <button class="example-btn" onclick="fillPrompt(this.dataset.p)" data-p="Read the jarvis.py file in my project and suggest 3 specific modern improvements using Claude AI.">
+    <span class="example-icon">🔍</span>Analyze jarvis.py
+  </button>
+  <button class="example-btn" onclick="fillPrompt(this.dataset.p)" data-p="Create a Python script that visualizes a sine wave using matplotlib, save it as sine_wave.py, and run it to confirm it works.">
+    <span class="example-icon">📊</span>Generate data visualization
+  </button>
+  <button class="example-btn" onclick="fillPrompt(this.dataset.p)" data-p="What system am I running on? Show me Python version, OS info, and list any interesting installed packages.">
+    <span class="example-icon">💻</span>System info & packages
+  </button>
+  <button class="example-btn" onclick="fillPrompt(this.dataset.p)" data-p="Create a markdown report file called 'project_report.md' that documents the current state of my D:/Code/AI directory including all files found.">
+    <span class="example-icon">📝</span>Generate project report
+  </button>
+
+  <div class="sidebar-footer">
+    <button class="btn-settings" onclick="openSettings()">⚙ Backend Settings</button>
+    <button class="btn-clear" onclick="clearChat()">🗑 Clear Chat</button>
+  </div>
+</aside>
+
+<!-- Main -->
+<div class="main">
+  <div class="chat-header">
+    <div>
+      <div class="chat-title">AI Agent Chat</div>
+      <div class="chat-sub">Multi-step reasoning · Tool use · Streaming</div>
+    </div>
+    <div class="model-badge" id="modelBadge">Loading…</div>
+  </div>
+
+  <div class="banner" id="apiBanner" onclick="openSettings()">
+    ⚠ Not configured — click here to set up your backend (Ollama or Anthropic)
+  </div>
+
+  <div class="messages" id="messages">
+    <div class="welcome" id="welcome">
+      <div class="welcome-icon">⚡</div>
+      <h2>Nexus Agent</h2>
+      <p>An agentic AI assistant that runs entirely on your laptop. Ask me to explore files, write and run code, search the web, and more.</p>
+      <div class="welcome-tools">
+        <span class="tool-chip">📁 File System</span>
+        <span class="tool-chip">🐍 Python Execution</span>
+        <span class="tool-chip">🌐 Web Search</span>
+        <span class="tool-chip">✍️ File Writing</span>
+        <span class="tool-chip">💻 System Info</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <div class="input-wrap">
+      <textarea id="userInput" placeholder="Ask Nexus to do something... (e.g. explore my files, run code, search the web)" rows="1"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+    </div>
+    <div class="input-hint">
+      <span><kbd class="kbd">Enter</kbd> to send · <kbd class="kbd">Shift+Enter</kbd> for new line</span>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <h3>⚙ Backend Settings</h3>
+
+    <!-- Backend toggle -->
+    <div style="display:flex;gap:8px;margin-bottom:20px;">
+      <button id="tabOllama" class="tab-btn tab-active" onclick="switchTab('ollama')">🦙 Ollama (Local)</button>
+      <button id="tabAnthropic" class="tab-btn" onclick="switchTab('anthropic')">☁ Anthropic</button>
+    </div>
+
+    <!-- Ollama panel -->
+    <div id="panelOllama">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.5;">
+        Run AI <strong>100% locally</strong> — no API key needed.<br/>
+        Requires <strong>Ollama</strong> installed and running on your machine.
+      </p>
+      <div class="form-group">
+        <label>OLLAMA URL</label>
+        <input type="text" id="ollamaUrl" value="http://localhost:11434" />
+      </div>
+      <div class="form-group">
+        <label>MODEL <span id="modelsStatus" style="font-weight:400;color:var(--text3);"></span></label>
+        <input type="text" id="ollamaModel" placeholder="e.g. qwen2.5:7b" />
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;" id="modelPresets">
+          <button class="preset-btn" onclick="setModel('qwen2.5:7b')">qwen2.5:7b ★</button>
+          <button class="preset-btn" onclick="setModel('llama3.2')">llama3.2:3b</button>
+          <button class="preset-btn" onclick="setModel('llama3.1:8b')">llama3.1:8b</button>
+          <button class="preset-btn" onclick="setModel('mistral')">mistral</button>
+        </div>
+      </div>
+      <div class="key-hint" id="ollamaInstallHint">
+        <strong>Install Ollama:</strong> <a href="https://ollama.com" target="_blank" style="color:var(--accent3);">ollama.com</a><br/>
+        Then pull a model: <code>ollama pull qwen2.5:7b</code><br/>
+        Best models for tool use: <strong>qwen2.5:7b</strong>, llama3.1:8b, mistral-nemo
+      </div>
+    </div>
+
+    <!-- Anthropic panel -->
+    <div id="panelAnthropic" style="display:none;">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.5;">
+        Use <strong>Claude</strong> via the Anthropic API. Requires an API key from console.anthropic.com.
+      </p>
+      <div class="form-group">
+        <label>ANTHROPIC API KEY</label>
+        <input type="password" id="anthropicKey" placeholder="sk-ant-..." autocomplete="off" />
+      </div>
+      <div class="form-group">
+        <label>MODEL</label>
+        <input type="text" id="anthropicModel" value="claude-sonnet-4-6" />
+      </div>
+      <div class="key-hint">
+        Get your key: <strong>console.anthropic.com</strong> → API Keys<br/>
+        Or set <code>ANTHROPIC_API_KEY</code> env var before starting.
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeSettings()">Cancel</button>
+      <button class="btn-primary" onclick="saveSettings()">Save &amp; Apply</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Markdown renderer (zero-dependency) ──────────────────────────────────────
+function renderMarkdown(text) {
+  // Escape HTML first (for user input safety)
+  let s = text;
+  // Code blocks
+  s = s.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+    const escaped = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return `<pre><code>${escaped}</code></pre>`;
+  });
+  // Inline code
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // Bold
+  s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Italic
+  s = s.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // Headings
+  s = s.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  s = s.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  s = s.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  // Hr
+  s = s.replace(/^---$/gm, '<hr>');
+  // Unordered list
+  s = s.replace(/^[*-] (.+)$/gm, '<li>$1</li>');
+  s = s.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+  // Ordered list
+  s = s.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+  // Paragraphs: wrap sequences of plain lines
+  s = s.replace(/\n\n+/g, '</p><p>');
+  s = '<p>' + s + '</p>';
+  s = s.replace(/<p><\/p>/g, '');
+  s = s.replace(/<p>(<h[123]>)/g, '$1');
+  s = s.replace(/(<\/h[123]>)<\/p>/g, '$1');
+  s = s.replace(/<p>(<ul>)/g, '$1');
+  s = s.replace(/(<\/ul>)<\/p>/g, '$1');
+  s = s.replace(/<p>(<pre>)/g, '$1');
+  s = s.replace(/(<\/pre>)<\/p>/g, '$1');
+  s = s.replace(/<p>(<hr>)<\/p>/g, '$1');
+  return s;
+}
+
+// ── Tool icons ────────────────────────────────────────────────────────────────
+const TOOL_ICONS = {
+  list_directory: '📁',
+  read_file: '📄',
+  write_file: '✍️',
+  execute_python: '🐍',
+  web_search: '🌐',
+  get_system_info: '💻',
+};
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let isThinking = false;
+let currentAgentMsgEl = null;
+let currentBubbleEl = null;
+let currentTextBuffer = '';
+let toolCards = {}; // id -> {card, statusEl, bodyEl, resultEl, chevron}
+
+// ── Current config state ──────────────────────────────────────────────────────
+let currentBackend = 'ollama';
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function init() {
+  const res = await fetch('/api/config');
+  const cfg = await res.json();
+  currentBackend = cfg.backend || 'ollama';
+
+  // Update model badge
+  const model = currentBackend === 'ollama' ? cfg.ollama_model : cfg.anthropic_model;
+  const icon = currentBackend === 'ollama' ? '🦙' : '☁';
+  document.getElementById('modelBadge').textContent = `${icon} ${model}`;
+
+  // Show banner if Anthropic selected but no key
+  if (currentBackend === 'anthropic' && !cfg.has_anthropic_key) {
+    document.getElementById('apiBanner').classList.add('show');
+  }
+
+  // Pre-fill settings fields
+  document.getElementById('ollamaUrl').value = cfg.ollama_url || 'http://localhost:11434';
+  document.getElementById('ollamaModel').value = cfg.ollama_model || 'qwen2.5:7b';
+  document.getElementById('anthropicModel').value = cfg.anthropic_model || 'claude-sonnet-4-6';
+
+  // Check if Ollama is running and populate model list
+  checkOllama();
+}
+init();
+
+// ── UI helpers ────────────────────────────────────────────────────────────────
+function setStatus(state) {
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  dot.className = 'status-dot';
+  if (state === 'thinking') {
+    dot.classList.add('thinking');
+    txt.textContent = 'Thinking…';
+  } else if (state === 'ready') {
+    dot.classList.remove('inactive');
+    txt.textContent = 'Ready';
+  } else {
+    dot.classList.add('inactive');
+    txt.textContent = 'Idle';
+  }
+}
+
+function scrollBottom() {
+  const m = document.getElementById('messages');
+  m.scrollTop = m.scrollHeight;
+}
+
+function hideWelcome() {
+  const w = document.getElementById('welcome');
+  if (w) w.remove();
+}
+
+function appendUserMsg(text) {
+  hideWelcome();
+  const div = document.createElement('div');
+  div.className = 'msg user';
+  div.innerHTML = `
+    <div class="msg-avatar">👤</div>
+    <div class="msg-body">
+      <div class="msg-bubble">${text.replace(/</g,'&lt;')}</div>
+    </div>`;
+  document.getElementById('messages').appendChild(div);
+  scrollBottom();
+}
+
+function createAgentMsg() {
+  const div = document.createElement('div');
+  div.className = 'msg agent';
+  div.innerHTML = `
+    <div class="msg-avatar">⚡</div>
+    <div class="msg-body" id="agentBody"></div>`;
+  document.getElementById('messages').appendChild(div);
+  currentAgentMsgEl = div.querySelector('#agentBody');
+  currentBubbleEl = null;
+  currentTextBuffer = '';
+  toolCards = {};
+  scrollBottom();
+  return currentAgentMsgEl;
+}
+
+function ensureBubble() {
+  if (!currentBubbleEl) {
+    currentBubbleEl = document.createElement('div');
+    currentBubbleEl.className = 'msg-bubble';
+    currentAgentMsgEl.appendChild(currentBubbleEl);
+  }
+  return currentBubbleEl;
+}
+
+function appendText(text) {
+  currentTextBuffer += text;
+  const bubble = ensureBubble();
+  bubble.innerHTML = renderMarkdown(currentTextBuffer);
+  scrollBottom();
+}
+
+function addTypingDots() {
+  const bubble = ensureBubble();
+  const dots = document.createElement('div');
+  dots.className = 'typing-dots';
+  dots.id = 'typingDots';
+  dots.innerHTML = '<span></span><span></span><span></span>';
+  bubble.appendChild(dots);
+  scrollBottom();
+}
+
+function removeTypingDots() {
+  const d = document.getElementById('typingDots');
+  if (d) d.remove();
+}
+
+function addToolCard(name, id) {
+  // Close current bubble so tool card appears below text
+  currentBubbleEl = null;
+  currentTextBuffer = '';
+
+  const card = document.createElement('div');
+  card.className = 'tool-card';
+  card.innerHTML = `
+    <div class="tool-header" onclick="toggleTool('${id}')">
+      <span class="tool-icon">${TOOL_ICONS[name] || '🔧'}</span>
+      <span class="tool-name">${name}</span>
+      <span class="tool-status running" id="ts_${id}">Running…</span>
+      <span class="tool-chevron" id="tc_${id}">▶</span>
+    </div>
+    <div class="tool-body" id="tb_${id}">
+      <div class="tool-section" id="tinput_${id}" style="display:none">
+        <div class="tool-label">Input</div>
+        <div class="tool-code" id="tcode_${id}"></div>
+      </div>
+      <div class="tool-section" id="tresult_${id}" style="display:none">
+        <div class="tool-label">Result</div>
+        <div class="tool-code" id="tres_${id}"></div>
+      </div>
+    </div>`;
+  currentAgentMsgEl.appendChild(card);
+  toolCards[id] = {
+    card,
+    statusEl: card.querySelector(`#ts_${id}`),
+    bodyEl: card.querySelector(`#tb_${id}`),
+    inputEl: card.querySelector(`#tinput_${id}`),
+    codeEl: card.querySelector(`#tcode_${id}`),
+    resultSecEl: card.querySelector(`#tresult_${id}`),
+    resultEl: card.querySelector(`#tres_${id}`),
+    chevron: card.querySelector(`#tc_${id}`)
+  };
+  scrollBottom();
+}
+
+function updateToolInput(id, input) {
+  const tc = toolCards[id];
+  if (!tc) return;
+  tc.inputEl.style.display = '';
+  tc.codeEl.textContent = JSON.stringify(input, null, 2);
+  // Auto-open
+  tc.bodyEl.classList.add('open');
+  tc.chevron.classList.add('open');
+}
+
+function updateToolResult(id, result, isError) {
+  const tc = toolCards[id];
+  if (!tc) return;
+  tc.statusEl.textContent = isError ? 'Error' : 'Done';
+  tc.statusEl.className = `tool-status ${isError ? 'error' : 'done'}`;
+  tc.resultSecEl.style.display = '';
+  tc.resultEl.textContent = result;
+}
+
+function toggleTool(id) {
+  const tc = toolCards[id];
+  if (!tc) return;
+  tc.bodyEl.classList.toggle('open');
+  tc.chevron.classList.toggle('open');
+}
+
+function showError(msg) {
+  const div = document.createElement('div');
+  div.className = 'error-msg';
+  div.textContent = '⚠ ' + msg;
+  currentAgentMsgEl.appendChild(div);
+  scrollBottom();
+}
+
+// ── Send message ──────────────────────────────────────────────────────────────
+async function sendMessage() {
+  if (isThinking) return;
+  const input = document.getElementById('userInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+  isThinking = true;
+  document.getElementById('sendBtn').disabled = true;
+  setStatus('thinking');
+
+  appendUserMsg(text);
+  createAgentMsg();
+  addTypingDots();
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({message: text})
+    });
+
+    if (!res.ok) {
+      removeTypingDots();
+      showError('Server error: ' + res.status);
+      return;
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let firstChunk = true;
+
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, {stream: true});
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        let data;
+        try { data = JSON.parse(line.slice(6)); } catch { continue; }
+
+        if (firstChunk) {
+          removeTypingDots();
+          firstChunk = false;
+        }
+
+        if (data.type === 'text') {
+          appendText(data.content);
+        } else if (data.type === 'tool_start') {
+          addToolCard(data.name, data.id);
+        } else if (data.type === 'tool_call') {
+          updateToolInput(data.id, data.input);
+        } else if (data.type === 'tool_result') {
+          const isErr = data.result.startsWith('Error') || data.result.startsWith('Tool error');
+          updateToolResult(data.id, data.result, isErr);
+          // New bubble for continuation text
+          currentBubbleEl = null;
+          currentTextBuffer = '';
+        } else if (data.type === 'error') {
+          removeTypingDots();
+          showError(data.message);
+          if (!data.message.includes('API key')) break;
+        } else if (data.type === 'done') {
+          break;
+        }
+      }
+    }
+  } catch (e) {
+    removeTypingDots();
+    showError('Connection error: ' + e.message);
+  } finally {
+    removeTypingDots();
+    isThinking = false;
+    document.getElementById('sendBtn').disabled = false;
+    setStatus('ready');
+    scrollBottom();
+  }
+}
+
+// ── Input auto-resize & keyboard ──────────────────────────────────────────────
+const input = document.getElementById('userInput');
+input.addEventListener('input', () => {
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 160) + 'px';
+});
+input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function fillPrompt(text) {
+  document.getElementById('userInput').value = text;
+  document.getElementById('userInput').focus();
+  document.getElementById('userInput').style.height = 'auto';
+  document.getElementById('userInput').style.height =
+    Math.min(document.getElementById('userInput').scrollHeight, 160) + 'px';
+}
+
+function clearChat() {
+  const m = document.getElementById('messages');
+  m.innerHTML = `
+    <div class="welcome" id="welcome">
+      <div class="welcome-icon">⚡</div>
+      <h2>Nexus Agent</h2>
+      <p>An agentic AI assistant that runs entirely on your laptop. Ask me to explore files, write and run code, search the web, and more.</p>
+      <div class="welcome-tools">
+        <span class="tool-chip">📁 File System</span>
+        <span class="tool-chip">🐍 Python Execution</span>
+        <span class="tool-chip">🌐 Web Search</span>
+        <span class="tool-chip">✍️ File Writing</span>
+        <span class="tool-chip">💻 System Info</span>
+      </div>
+    </div>`;
+}
+
+// ── Settings modal ────────────────────────────────────────────────────────────
+let activeTab = 'ollama';
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.getElementById('tabOllama').classList.toggle('tab-active', tab === 'ollama');
+  document.getElementById('tabAnthropic').classList.toggle('tab-active', tab === 'anthropic');
+  document.getElementById('panelOllama').style.display = tab === 'ollama' ? '' : 'none';
+  document.getElementById('panelAnthropic').style.display = tab === 'anthropic' ? '' : 'none';
+}
+
+function openSettings() {
+  switchTab(currentBackend);
+  document.getElementById('settingsModal').classList.add('open');
+  checkOllama();
+}
+
+function closeSettings() {
+  document.getElementById('settingsModal').classList.remove('open');
+}
+
+async function checkOllama() {
+  const statusEl = document.getElementById('modelsStatus');
+  statusEl.textContent = '(checking…)';
+  try {
+    const res = await fetch('/api/ollama/models');
+    const data = await res.json();
+    if (data.running && data.models.length) {
+      statusEl.textContent = `(${data.models.length} models available)`;
+      // Add detected models as preset chips
+      const presets = document.getElementById('modelPresets');
+      presets.innerHTML = '';
+      data.models.slice(0, 8).forEach(m => {
+        const btn = document.createElement('button');
+        btn.className = 'preset-btn';
+        btn.textContent = m;
+        btn.onclick = () => setModel(m);
+        presets.appendChild(btn);
+      });
+    } else {
+      statusEl.textContent = '(Ollama not running)';
+    }
+  } catch {
+    statusEl.textContent = '(cannot reach Ollama)';
+  }
+}
+
+function setModel(name) {
+  document.getElementById('ollamaModel').value = name;
+}
+
+async function saveSettings() {
+  const body = { backend: activeTab };
+  if (activeTab === 'ollama') {
+    body.ollama_url = document.getElementById('ollamaUrl').value.trim();
+    body.ollama_model = document.getElementById('ollamaModel').value.trim();
+  } else {
+    const key = document.getElementById('anthropicKey').value.trim();
+    if (key) body.anthropic_key = key;
+    body.anthropic_model = document.getElementById('anthropicModel').value.trim();
+  }
+
+  const res = await fetch('/api/config', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body)
+  });
+
+  if (res.ok) {
+    currentBackend = activeTab;
+    const model = activeTab === 'ollama'
+      ? body.ollama_model
+      : body.anthropic_model;
+    const icon = activeTab === 'ollama' ? '🦙' : '☁';
+    document.getElementById('modelBadge').textContent = `${icon} ${model}`;
+    document.getElementById('apiBanner').classList.remove('show');
+    closeSettings();
+  }
+}
+
+document.getElementById('settingsModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('settingsModal')) closeSettings();
+});
+</script>
+</body>
+</html>
