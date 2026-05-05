@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s http://localhost:8000/api/config)",
+      "mcp__Claude_in_Chrome__list_connected_browsers",
+      "Bash(pip show *)",
+      "Bash(pip install *)",
+      "Bash(python demo/run_evaluation_demo.py)"
+    ]
+  }
+}
