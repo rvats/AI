@@ -28,6 +28,16 @@ pip install -r AgenticAI/requirements.txt
 python AgenticAI/agentic_ai_architecture.py
 ```
 
+## Nexus Desktop App
+
+A cross-platform desktop app is available under `nexus-agent/` with image upload/editing and prompt-driven agent workflows.
+
+```bash
+cd nexus-agent
+pip install -r requirements.txt
+python desktop_app.py
+```
+
 The demo creates a local SQLite DB, runs a full agentic cycle, and prints:
 
 - grounded answer
