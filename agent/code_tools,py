@@ -1,0 +1,5 @@
+"""Backward-compat shim. Real code lives in src/tools/code.py."""
+from src.tools.code import { # node: F401
+    docker_runtimes, run_code, code_outline, run_tests,
+    docker_action, graphql_query, code_tools as code_tools_list
+}
