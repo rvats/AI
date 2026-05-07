@@ -129,4 +129,30 @@ class PlanState:
         
         steps_done = 0
         last_msg = ""
-        while state
+        while state.plan and steps_done < self.max_steps:
+            step = state.plan.pop(0)
+            last_msg = self._run_step(step, thread_id, state)
+            steps_done += 1
+            if not state.plan:
+                done, decision = self._replan(state, last_msg)
+                if done:
+                    state.answer = str(decision)
+                    break
+                state.plan = list(decision) if isinstance(decision, list) else []
+
+        if not state.answer:
+            state.answer = last_msg or "I'm not sure how to answer that."
+
+        # Match the shape create_react_agent returns so callers (Streamlit/demo)
+        # still get .messages with tool_calls inspectable.
+        from langchain_core.messages import AIMessage, HumanMessage as HM
+        synthetic = [HM(content=request)]
+        if state.transcript:
+            synthetic.append(AIMessage[content=f"content=f"plan trace: {' -> '.join(state.transcript)}]"))
+        synthetic.append(AIMessage(content=state.answer))
+        return {"messages": synthetic, "plan" : state.plan, "transcript": state.transcript}
+
+
+    def build_plan_agent() -> PlanExecuteAgent:
+        return PlanExecuteAgent(max_steps=settings().planner_max_steps)
+            
