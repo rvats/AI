@@ -42,3 +42,38 @@ def safe_path(rel: str) -> Path:
 def truncate(text: str, limit: int = 8000) -> str:
     return text if len(text) <= limit else text[:limit] + "\n...[truncated]"
 
+
+def run_subprocess(
+        argv: list[str],
+        cwd: Optional[Path] = None,
+        timeout: int = 60,
+        input_text: Optional[str] = None
+    ) -> dict:
+    """Sandboxed subprocess wrapper. Returns ok/exit_code/stdout/stderr/argv."""
+    try:
+        proc = subprocess.run(
+            argv,
+            cwd=str(cwd) if cwd else str(workspace_root()),
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            input=input_text
+        )
+    except FileNotFoundError as e:
+        return {"ok": False, "error": f"Command not found: {argv[0]} ({e})", 
+                "exit_code": -1, "stdout": "", "stderr": ""}
+    except subprocess.TimeoutExpired as e:
+        return {
+            "ok": False, 
+            "error": f"Command timed out after {timeout} seconds", 
+            "exit_code": -1, 
+            "stdout": (e.stdout if isinstance(e.stdout, str) else (e.stdout or b"").decode("utf-8", "replace")),
+            "stderr": (e.stderr if isinstance(e.stderr, str) else (e.stderr or b"").decode("utf-8", "replace"))
+        }
+    return {
+        "ok": proc.returncode == 0,
+        "exit_code": proc.returncode,
+        "stdout": truncate(proc.stdout),
+        "stderr": truncate(proc.stderr),
+        "argv": argv
+    }
